@@ -4,7 +4,8 @@ import { OrganizationDetail } from "~/app/_components/organizations/detail";
 import { auth } from "~/server/auth";
 import { api, HydrateClient } from "~/trpc/server";
 
-export default async function OrganizationPage({ params }: { params: { id: string } }) {
+export default async function OrganizationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await auth();
   
   if (!session?.user) {
@@ -26,7 +27,7 @@ export default async function OrganizationPage({ params }: { params: { id: strin
   }
 
   // Prefetch the organization data
-  void api.organization.getById.prefetch({ id: params.id });
+  void api.organization.getById.prefetch({ id });
 
   return (
     <HydrateClient>
@@ -40,7 +41,7 @@ export default async function OrganizationPage({ params }: { params: { id: strin
               ← Back to Organizations
             </Link>
           </div>
-          <OrganizationDetail organizationId={params.id} />
+          <OrganizationDetail organizationId={id} />
         </div>
       </main>
     </HydrateClient>

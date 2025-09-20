@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
+import Link from "next/link";
 import { CreateOrganizationForm } from "./create-organization-form";
 import { OrganizationCard } from "./organization-card";
 
@@ -19,12 +20,20 @@ export function OrganizationList() {
     <div className="w-full">
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-bold">Organizations</h2>
-        <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          className="rounded-full bg-white/10 px-4 py-2 font-semibold transition hover:bg-white/20"
-        >
-          {showCreateForm ? "Cancel" : "Create Organization"}
-        </button>
+        <div className="space-x-2">
+          <Link 
+            href="/invitations" 
+            className="rounded-full bg-white/10 px-4 py-2 font-semibold transition hover:bg-white/20"
+          >
+            Invitations
+          </Link>
+          <button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="rounded-full bg-white/10 px-4 py-2 font-semibold transition hover:bg-white/20"
+          >
+            {showCreateForm ? "Cancel" : "Create Organization"}
+          </button>
+        </div>
       </div>
 
       {showCreateForm && (

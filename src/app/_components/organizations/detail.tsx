@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
+import { InviteUserForm } from "./invite-user-form";
+import { PendingInvitations } from "./pending-invitations";
+import { OrganizationMembers } from "./organization-members";
 
 export function OrganizationDetail({ organizationId }: { organizationId: string }) {
   const [organization] = api.organization.getById.useSuspenseQuery({ id: organizationId });
   const [isEditing, setIsEditing] = useState(false);
+  const [showInviteForm, setShowInviteForm] = useState(false);
   const [name, setName] = useState(organization?.name ?? "");
   const [description, setDescription] = useState(organization?.description ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -98,12 +102,20 @@ export function OrganizationDetail({ organizationId }: { organizationId: string 
         <div>
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-bold">{organization.name}</h1>
-            <button
-              onClick={() => setIsEditing(true)}
-              className="rounded-lg bg-white/10 px-4 py-2 font-semibold transition hover:bg-white/20"
-            >
-              Edit
-            </button>
+            <div className="space-x-2">
+              <button
+                onClick={() => setShowInviteForm(!showInviteForm)}
+                className="rounded-lg bg-white/10 px-4 py-2 font-semibold transition hover:bg-white/20"
+              >
+                {showInviteForm ? "Cancel" : "Invite User"}
+              </button>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="rounded-lg bg-white/10 px-4 py-2 font-semibold transition hover:bg-white/20"
+              >
+                Edit
+              </button>
+            </div>
           </div>
           
           {organization.description && (
@@ -112,24 +124,38 @@ export function OrganizationDetail({ organizationId }: { organizationId: string 
             </div>
           )}
           
-          <div className="rounded-lg bg-white/5 p-6">
-            <h2 className="text-xl font-bold mb-4">Organization Details</h2>
-            <div className="space-y-2">
-              <div className="flex">
-                <span className="w-32 font-medium">ID:</span>
-                <span className="text-gray-300">{organization.id}</span>
-              </div>
-              <div className="flex">
-                <span className="w-32 font-medium">Created:</span>
-                <span className="text-gray-300">
-                  {organization.createdAt.toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex">
-                <span className="w-32 font-medium">Last Updated:</span>
-                <span className="text-gray-300">
-                  {organization.updatedAt.toLocaleDateString()}
-                </span>
+          {showInviteForm && (
+            <div className="mb-6">
+              <InviteUserForm 
+                organizationId={organizationId} 
+                onSuccess={() => setShowInviteForm(false)} 
+              />
+            </div>
+          )}
+          
+          <div className="space-y-6">
+            <PendingInvitations organizationId={organizationId} />
+            <OrganizationMembers organizationId={organizationId} />
+            
+            <div className="rounded-lg bg-white/5 p-6">
+              <h2 className="text-xl font-bold mb-4">Organization Details</h2>
+              <div className="space-y-2">
+                <div className="flex">
+                  <span className="w-32 font-medium">ID:</span>
+                  <span className="text-gray-300">{organization.id}</span>
+                </div>
+                <div className="flex">
+                  <span className="w-32 font-medium">Created:</span>
+                  <span className="text-gray-300">
+                    {organization.createdAt.toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex">
+                  <span className="w-32 font-medium">Last Updated:</span>
+                  <span className="text-gray-300">
+                    {organization.updatedAt.toLocaleDateString()}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

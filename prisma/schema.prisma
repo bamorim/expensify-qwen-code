@@ -39,14 +39,15 @@ model Session {
 }
 
 model User {
-    id            String    @id @default(cuid())
+    id            String       @id @default(cuid())
     name          String?
-    email         String?   @unique
+    email         String?      @unique
     emailVerified DateTime?
     image         String?
     accounts      Account[]
     sessions      Session[]
     memberships   Membership[]
+    invitations   Invitation[] @relation("UserInvitations")
 }
 
 model Organization {
@@ -56,6 +57,7 @@ model Organization {
     createdAt   DateTime     @default(now())
     updatedAt   DateTime     @updatedAt
     memberships Membership[]
+    invitations Invitation[]
 }
 
 model Membership {
@@ -69,6 +71,22 @@ model Membership {
     updatedAt      DateTime     @updatedAt
 
     @@unique([userId, organizationId])
+}
+
+model Invitation {
+    id             String       @id @default(cuid())
+    email          String
+    role           Role         @default(MEMBER)
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String
+    invitedBy      User         @relation("UserInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+    invitedById    String
+    accepted       Boolean      @default(false)
+    acceptedAt     DateTime?
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+
+    @@unique([email, organizationId])
 }
 
 enum Role {
