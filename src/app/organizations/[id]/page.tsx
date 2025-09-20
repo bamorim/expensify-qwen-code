@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import { OrganizationDetail } from "~/app/_components/organizations/detail";
 import { auth } from "~/server/auth";

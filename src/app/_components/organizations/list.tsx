@@ -35,7 +35,7 @@ export function OrganizationList() {
 
       {organizations.length === 0 ? (
         <div className="rounded-lg bg-white/5 p-6 text-center">
-          <p className="text-lg">You don't belong to any organizations yet.</p>
+          <p className="text-lg">You don&apos;t belong to any organizations yet.</p>
           <button
             onClick={() => setShowCreateForm(true)}
             className="mt-4 rounded-full bg-white/10 px-4 py-2 font-semibold transition hover:bg-white/20"

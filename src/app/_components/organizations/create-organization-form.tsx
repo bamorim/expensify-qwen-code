@@ -11,8 +11,8 @@ export function CreateOrganizationForm({ onSuccess }: { onSuccess: () => void })
   const [error, setError] = useState<string | null>(null);
   
   const createOrganization = api.organization.create.useMutation({
-    onSuccess: async (data) => {
-      await onSuccess();
+    onSuccess: (data) => {
+      onSuccess();
       // Redirect to the new organization page
       router.push(`/organizations/${data.id}`);
     },

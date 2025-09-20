@@ -4,7 +4,6 @@ import {
   createTRPCRouter,
   protectedProcedure,
 } from "~/server/api/trpc";
-import { db } from "~/server/db";
 
 export const organizationRouter = createTRPCRouter({
   create: protectedProcedure
