@@ -10,18 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
-}
-
 // Necessary for Next auth
 model Account {
     id                       String  @id @default(cuid())
@@ -58,7 +46,34 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
-    posts         Post[]
+    memberships   Membership[]
+}
+
+model Organization {
+    id          String       @id @default(cuid())
+    name        String
+    description String?
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+    memberships Membership[]
+}
+
+model Membership {
+    id             String       @id @default(cuid())
+    role           Role         @default(MEMBER)
+    user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId         String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+
+    @@unique([userId, organizationId])
+}
+
+enum Role {
+    ADMIN
+    MEMBER
 }
 
 model VerificationToken {
