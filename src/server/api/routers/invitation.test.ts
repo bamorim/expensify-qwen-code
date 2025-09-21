@@ -86,7 +86,9 @@ describe("InvitationRouter", () => {
       });
 
       // Accept the invitation
-      const result = await invitationCaller.accept({ invitationId: invitation.id });
+      const result = await invitationCaller.accept({
+        invitationId: invitation.id,
+      });
 
       expect(result.success).toBe(true);
       expect(result.message).toBe("You have been added to the organization");
@@ -119,9 +121,9 @@ describe("InvitationRouter", () => {
     it("should throw error when invitation is not found", async () => {
       const { invitationCaller } = await createTestUserAndCaller();
 
-      await expect(invitationCaller.accept({ invitationId: "invalid-id" })).rejects.toThrow(
-        "Invitation not found"
-      );
+      await expect(
+        invitationCaller.accept({ invitationId: "invalid-id" }),
+      ).rejects.toThrow("Invitation not found");
     });
 
     it("should throw error when invitation is not for the user's email", async () => {
@@ -161,9 +163,9 @@ describe("InvitationRouter", () => {
         },
       });
 
-      await expect(invitationCaller.accept({ invitationId: invitation.id })).rejects.toThrow(
-        "This invitation is not for your email address"
-      );
+      await expect(
+        invitationCaller.accept({ invitationId: invitation.id }),
+      ).rejects.toThrow("This invitation is not for your email address");
     });
   });
 
@@ -211,7 +213,7 @@ describe("InvitationRouter", () => {
       expect(result).toHaveLength(1);
       expect(result[0]?.id).toBe(invitation.id);
       expect(result[0]?.email).toBe(email);
-      expect(result[0]?.organizationId).toBe(organization?.id);
+      expect(result[0]?.organization.id).toBe(organization.id);
     });
   });
 });
@@ -289,8 +291,8 @@ describe("OrganizationRouter - Invitations", () => {
           organizationId: organization.id,
           email: inviteeEmail,
           role: "MEMBER",
-        })
-      ).rejects.toThrow("You must be an admin to invite users to this organization");
+        }),
+      ).rejects.toThrow("You must be an admin to perform this action");
     });
 
     it("should throw error when user is already a member", async () => {
@@ -334,7 +336,7 @@ describe("OrganizationRouter - Invitations", () => {
           organizationId: organization.id,
           email: existingUser.email!,
           role: "MEMBER",
-        })
+        }),
       ).rejects.toThrow("User is already a member of this organization");
     });
   });
@@ -383,7 +385,90 @@ describe("OrganizationRouter - Invitations", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]?.id).toBe(invitation?.id);
-      expect(result[0]?.organizationId).toBe(organization?.id);
+      expect(result[0]?.organizationId).toBe(organization.id);
+    });
+
+    it("should throw error when user is not a member", async () => {
+      const { organizationCaller } = await createTestUserAndCaller();
+
+      // Create an organization without membership for this user
+      const organization = await db.organization.create({
+        data: {
+          name: "Test Organization",
+          description: "Test Description",
+        },
+      });
+
+      await expect(
+        organizationCaller.getInvitations({
+          organizationId: organization.id,
+        }),
+      ).rejects.toThrow("You are not a member of this organization");
+    });
+  });
+
+  describe("getMembers", () => {
+    it("should return members for the organization", async () => {
+      const { organizationCaller, user } = await createTestUserAndCaller();
+
+      // Create an organization with the user as admin
+      const organization = await db.organization.create({
+        data: {
+          name: "Test Organization",
+          description: "Test Description",
+        },
+      });
+
+      await db.membership.create({
+        data: {
+          userId: user.id,
+          organizationId: organization.id,
+          role: "ADMIN",
+        },
+      });
+
+      // Create another user
+      const memberUser = await db.user.create({
+        data: {
+          name: "Member User",
+          email: faker.internet.email(),
+        },
+      });
+
+      // Make the user a member of the organization
+      const member = await db.membership.create({
+        data: {
+          userId: memberUser.id,
+          organizationId: organization.id,
+          role: "MEMBER",
+        },
+      });
+
+      const result = await organizationCaller.getMembers({
+        organizationId: organization.id,
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.some((m) => m.id === member.id)).toBe(true);
+    });
+
+    it("should throw error when user is not a member", async () => {
+      const { organizationCaller } = await createTestUserAndCaller();
+
+      // Create an organization without membership for this user
+      const organization = await db.organization.create({
+        data: {
+          name: "Test Organization",
+          description: "Test Description",
+        },
+      });
+
+      await expect(
+        organizationCaller.getMembers({
+          organizationId: organization.id,
+        }),
+      ).rejects.toThrow("You are not a member of this organization");
     });
   });
 });
+

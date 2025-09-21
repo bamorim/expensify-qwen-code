@@ -4,10 +4,14 @@ import { OrganizationDetail } from "~/app/_components/organizations/detail";
 import { auth } from "~/server/auth";
 import { api, HydrateClient } from "~/trpc/server";
 
-export default async function OrganizationPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OrganizationPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   const session = await auth();
-  
+
   if (!session?.user) {
     // Redirect to sign in if not authenticated
     return (
@@ -28,16 +32,16 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
 
   // Prefetch the organization data
   void api.organization.getById.prefetch({ id });
+  void api.organization.getMembership.prefetch({ organizationId: id });
+  void api.organization.getInvitations.prefetch({ organizationId: id });
+  void api.organization.getMembers.prefetch({ organizationId: id });
 
   return (
     <HydrateClient>
       <main className="flex min-h-screen flex-col items-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
         <div className="container px-4 py-16">
           <div className="mb-8">
-            <Link 
-              href="/" 
-              className="text-blue-400 hover:text-blue-300"
-            >
+            <Link href="/" className="text-blue-400 hover:text-blue-300">
               ← Back to Organizations
             </Link>
           </div>
@@ -47,3 +51,4 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
     </HydrateClient>
   );
 }
+

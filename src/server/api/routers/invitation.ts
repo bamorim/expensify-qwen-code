@@ -1,15 +1,14 @@
 import { z } from "zod";
 
-import {
-  createTRPCRouter,
-  protectedProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const invitationRouter = createTRPCRouter({
   accept: protectedProcedure
-    .input(z.object({
-      invitationId: z.string(),
-    }))
+    .input(
+      z.object({
+        invitationId: z.string(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       // Find the invitation
       const invitation = await ctx.db.invitation.findUnique({
@@ -51,7 +50,7 @@ export const invitationRouter = createTRPCRouter({
             acceptedAt: new Date(),
           },
         });
-        
+
         return {
           success: true,
           message: "You are already a member of this organization",
@@ -87,25 +86,25 @@ export const invitationRouter = createTRPCRouter({
       };
     }),
 
-  getPending: protectedProcedure
-    .query(async ({ ctx }) => {
-      // Find all pending invitations for the user's email
-      const invitations = await ctx.db.invitation.findMany({
-        where: {
-          email: ctx.session.user.email ?? "",
-          accepted: false,
-        },
-        include: {
-          organization: true,
-          invitedBy: {
-            select: {
-              name: true,
-              email: true,
-            },
+  getPending: protectedProcedure.query(async ({ ctx }) => {
+    // Find all pending invitations for the user's email
+    const invitations = await ctx.db.invitation.findMany({
+      where: {
+        email: ctx.session.user.email ?? "",
+        accepted: false,
+      },
+      include: {
+        organization: true,
+        invitedBy: {
+          select: {
+            name: true,
+            email: true,
           },
         },
-      });
+      },
+    });
 
-      return invitations;
-    }),
+    return invitations;
+  }),
 });
+

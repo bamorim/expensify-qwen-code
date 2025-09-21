@@ -5,15 +5,24 @@ import { api } from "~/trpc/react";
 import { InviteUserForm } from "./invite-user-form";
 import { PendingInvitations } from "./pending-invitations";
 import { OrganizationMembers } from "./organization-members";
+import { IfAdmin } from "./if-admin";
 
-export function OrganizationDetail({ organizationId }: { organizationId: string }) {
-  const [organization] = api.organization.getById.useSuspenseQuery({ id: organizationId });
+export function OrganizationDetail({
+  organizationId,
+}: {
+  organizationId: string;
+}) {
+  const [organization] = api.organization.getById.useSuspenseQuery({
+    id: organizationId,
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [name, setName] = useState(organization?.name ?? "");
-  const [description, setDescription] = useState(organization?.description ?? "");
+  const [description, setDescription] = useState(
+    organization?.description ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
-  
+
   const utils = api.useUtils();
   const updateOrganization = api.organization.update.useMutation({
     onSuccess: async () => {
@@ -29,10 +38,10 @@ export function OrganizationDetail({ organizationId }: { organizationId: string 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (organization) {
-      updateOrganization.mutate({ 
-        id: organization.id, 
-        name, 
-        description 
+      updateOrganization.mutate({
+        id: organization.id,
+        name,
+        description,
       });
     }
   };
@@ -46,7 +55,10 @@ export function OrganizationDetail({ organizationId }: { organizationId: string 
       {isEditing ? (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="edit-name" className="block text-sm font-medium mb-1">
+            <label
+              htmlFor="edit-name"
+              className="mb-1 block text-sm font-medium"
+            >
               Organization Name *
             </label>
             <input
@@ -58,9 +70,12 @@ export function OrganizationDetail({ organizationId }: { organizationId: string 
               required
             />
           </div>
-          
+
           <div>
-            <label htmlFor="edit-description" className="block text-sm font-medium mb-1">
+            <label
+              htmlFor="edit-description"
+              className="mb-1 block text-sm font-medium"
+            >
               Description
             </label>
             <textarea
@@ -71,11 +86,9 @@ export function OrganizationDetail({ organizationId }: { organizationId: string 
               rows={3}
             />
           </div>
-          
-          {error && (
-            <div className="text-red-400 text-sm">{error}</div>
-          )}
-          
+
+          {error && <div className="text-sm text-red-400">{error}</div>}
+
           <div className="flex justify-end space-x-3">
             <button
               type="button"
@@ -100,45 +113,53 @@ export function OrganizationDetail({ organizationId }: { organizationId: string 
         </form>
       ) : (
         <div>
-          <div className="flex items-center justify-between mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <h1 className="text-3xl font-bold">{organization.name}</h1>
             <div className="space-x-2">
-              <button
-                onClick={() => setShowInviteForm(!showInviteForm)}
-                className="rounded-lg bg-white/10 px-4 py-2 font-semibold transition hover:bg-white/20"
-              >
-                {showInviteForm ? "Cancel" : "Invite User"}
-              </button>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="rounded-lg bg-white/10 px-4 py-2 font-semibold transition hover:bg-white/20"
-              >
-                Edit
-              </button>
+              <IfAdmin organizationId={organizationId}>
+                <button
+                  onClick={() => setShowInviteForm(!showInviteForm)}
+                  className="rounded-lg bg-white/10 px-4 py-2 font-semibold transition hover:bg-white/20"
+                >
+                  {showInviteForm ? "Cancel" : "Invite User"}
+                </button>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="rounded-lg bg-white/10 px-4 py-2 font-semibold transition hover:bg-white/20"
+                >
+                  Edit
+                </button>
+              </IfAdmin>
             </div>
           </div>
-          
+
           {organization.description && (
             <div className="mb-6">
-              <p className="text-lg text-gray-300">{organization.description}</p>
+              <p className="text-lg text-gray-300">
+                {organization.description}
+              </p>
             </div>
           )}
-          
-          {showInviteForm && (
-            <div className="mb-6">
-              <InviteUserForm 
-                organizationId={organizationId} 
-                onSuccess={() => setShowInviteForm(false)} 
-              />
-            </div>
-          )}
-          
+
+          <IfAdmin organizationId={organizationId}>
+            {showInviteForm && (
+              <div className="mb-6">
+                <InviteUserForm
+                  organizationId={organizationId}
+                  onSuccess={() => setShowInviteForm(false)}
+                />
+              </div>
+            )}
+          </IfAdmin>
+
           <div className="space-y-6">
-            <PendingInvitations organizationId={organizationId} />
+            <IfAdmin organizationId={organizationId}>
+              <PendingInvitations organizationId={organizationId} />
+            </IfAdmin>
             <OrganizationMembers organizationId={organizationId} />
-            
+
             <div className="rounded-lg bg-white/5 p-6">
-              <h2 className="text-xl font-bold mb-4">Organization Details</h2>
+              <h2 className="mb-4 text-xl font-bold">Organization Details</h2>
               <div className="space-y-2">
                 <div className="flex">
                   <span className="w-32 font-medium">ID:</span>
@@ -164,3 +185,4 @@ export function OrganizationDetail({ organizationId }: { organizationId: string 
     </div>
   );
 }
+

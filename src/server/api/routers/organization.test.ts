@@ -12,11 +12,11 @@ vi.mock("~/server/auth", () => ({
 }));
 
 // Helper function to create a test user and caller
-async function createTestUserAndCaller() {
+async function createTestUserAndCaller(email?: string) {
   const user = await db.user.create({
     data: {
       name: "Test User",
-      email: faker.internet.email(),
+      email: email ?? faker.internet.email(),
     },
   });
 
@@ -208,7 +208,255 @@ describe("OrganizationRouter", () => {
           name: "Updated Organization",
           description: "Updated Description",
         }),
-      ).rejects.toThrow("You must be an admin to update this organization");
+      ).rejects.toThrow("You must be an admin to perform this action");
+    });
+  });
+
+  describe("inviteUser", () => {
+    it("should create an invitation successfully when user is admin", async () => {
+      const { caller, user } = await createTestUserAndCaller();
+
+      // Create an organization with the user as admin
+      const organization = await db.organization.create({
+        data: {
+          name: "Test Organization",
+          description: "Test Description",
+        },
+      });
+
+      await db.membership.create({
+        data: {
+          userId: user.id,
+          organizationId: organization.id,
+          role: "ADMIN",
+        },
+      });
+
+      const inviteeEmail = faker.internet.email();
+      const result = await caller.inviteUser({
+        organizationId: organization.id,
+        email: inviteeEmail,
+        role: "MEMBER",
+      });
+
+      expect(result.email).toBe(inviteeEmail);
+      expect(result.role).toBe("MEMBER");
+      expect(result.organizationId).toBe(organization.id);
+      expect(result.invitedById).toBe(user.id);
+
+      // Check that invitation was created in database
+      const invitation = await db.invitation.findUnique({
+        where: {
+          id: result.id,
+        },
+      });
+
+      expect(invitation).toBeDefined();
+      expect(invitation?.email).toBe(inviteeEmail);
+    });
+
+    it("should throw error when user is not an admin", async () => {
+      const { caller, user } = await createTestUserAndCaller();
+
+      // Create an organization with the user as member
+      const organization = await db.organization.create({
+        data: {
+          name: "Test Organization",
+          description: "Test Description",
+        },
+      });
+
+      await db.membership.create({
+        data: {
+          userId: user.id,
+          organizationId: organization.id,
+          role: "MEMBER",
+        },
+      });
+
+      const inviteeEmail = faker.internet.email();
+      await expect(
+        caller.inviteUser({
+          organizationId: organization.id,
+          email: inviteeEmail,
+          role: "MEMBER",
+        }),
+      ).rejects.toThrow("You must be an admin to perform this action");
+    });
+
+    it("should throw error when user is already a member", async () => {
+      const { caller, user } = await createTestUserAndCaller();
+
+      // Create an organization with the user as admin
+      const organization = await db.organization.create({
+        data: {
+          name: "Test Organization",
+          description: "Test Description",
+        },
+      });
+
+      await db.membership.create({
+        data: {
+          userId: user.id,
+          organizationId: organization.id,
+          role: "ADMIN",
+        },
+      });
+
+      // Create another user
+      const existingUser = await db.user.create({
+        data: {
+          name: "Existing User",
+          email: faker.internet.email(),
+        },
+      });
+
+      // Make the user a member of the organization
+      await db.membership.create({
+        data: {
+          userId: existingUser.id,
+          organizationId: organization.id,
+          role: "MEMBER",
+        },
+      });
+
+      await expect(
+        caller.inviteUser({
+          organizationId: organization.id,
+          email: existingUser.email!,
+          role: "MEMBER",
+        }),
+      ).rejects.toThrow("User is already a member of this organization");
+    });
+  });
+
+  describe("getInvitations", () => {
+    it("should return invitations for the organization when user is a member", async () => {
+      const { caller, user } = await createTestUserAndCaller();
+
+      // Create an organization with the user as admin
+      const organization = await db.organization.create({
+        data: {
+          name: "Test Organization",
+          description: "Test Description",
+        },
+      });
+
+      await db.membership.create({
+        data: {
+          userId: user.id,
+          organizationId: organization.id,
+          role: "ADMIN",
+        },
+      });
+
+      // Create an admin user for inviting
+      const adminUser = await db.user.create({
+        data: {
+          name: "Admin User",
+          email: faker.internet.email(),
+        },
+      });
+
+      // Create an invitation
+      const invitation = await db.invitation.create({
+        data: {
+          email: faker.internet.email(),
+          role: "MEMBER",
+          organizationId: organization.id,
+          invitedById: adminUser.id,
+        },
+      });
+
+      const result = await caller.getInvitations({
+        organizationId: organization.id,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe(invitation?.id);
+      expect(result[0]?.organizationId).toBe(organization.id);
+    });
+
+    it("should throw error when user is not a member", async () => {
+      const { caller } = await createTestUserAndCaller();
+
+      // Create an organization without membership for this user
+      const organization = await db.organization.create({
+        data: {
+          name: "Test Organization",
+          description: "Test Description",
+        },
+      });
+
+      await expect(
+        caller.getInvitations({
+          organizationId: organization.id,
+        }),
+      ).rejects.toThrow("You are not a member of this organization");
+    });
+  });
+
+  describe("getMembers", () => {
+    it("should return members for the organization when user is a member", async () => {
+      const { caller, user } = await createTestUserAndCaller();
+
+      // Create an organization with the user as admin
+      const organization = await db.organization.create({
+        data: {
+          name: "Test Organization",
+          description: "Test Description",
+        },
+      });
+
+      await db.membership.create({
+        data: {
+          userId: user.id,
+          organizationId: organization.id,
+          role: "ADMIN",
+        },
+      });
+
+      // Create another user
+      const memberUser = await db.user.create({
+        data: {
+          name: "Member User",
+          email: faker.internet.email(),
+        },
+      });
+
+      // Make the user a member of the organization
+      const member = await db.membership.create({
+        data: {
+          userId: memberUser.id,
+          organizationId: organization.id,
+          role: "MEMBER",
+        },
+      });
+
+      const result = await caller.getMembers({
+        organizationId: organization.id,
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.some((m) => m.id === member.id)).toBe(true);
+    });
+
+    it("should throw error when user is not a member", async () => {
+      const { caller } = await createTestUserAndCaller();
+
+      // Create an organization without membership for this user
+      const organization = await db.organization.create({
+        data: {
+          name: "Test Organization",
+          description: "Test Description",
+        },
+      });
+
+      await expect(
+        caller.getMembers({
+          organizationId: organization.id,
+        }),
+      ).rejects.toThrow("You are not a member of this organization");
     });
   });
 });
